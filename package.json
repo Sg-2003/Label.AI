@@ -1,0 +1,15 @@
+{
+  "name": "labelloop-ai",
+  "version": "1.0.0",
+  "description": "LabelLoop AI - Enterprise Data Labeling & Annotation Platform",
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,magenta\" \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "start": "concurrently -n \"SERVER,CLIENT\" -c \"blue,magenta\" \"npm run start --prefix server\" \"npm run dev --prefix client\"",
+    "seed": "npm run seed --prefix server",
+    "test:api": "npm run test:api --prefix server",
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

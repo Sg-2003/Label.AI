@@ -55,20 +55,17 @@ npm run seed
 | **Annotator** | `charlie@labelloop.ai` | `password123` |
 | **Reviewer** | `reviewer@labelloop.ai` | `password123` |
 
-### 5. Run the Application
+### 5. Run Fullstack Application (1-Command)
 
-#### Terminal 1 — Start the Backend (Port 5000)
+From the project root:
 ```bash
-cd server
 npm run dev
 ```
+This runs both the Express backend and React Vite client concurrently with colored logs:
+- **Backend**: `http://localhost:5000/api/v1`
+- **Frontend**: `http://localhost:5173`
 
-#### Terminal 2 — Start the Frontend (Port 5173)
-```bash
-cd client
-npm run dev
-```
-Open **`http://localhost:5173`** in your browser.
+*(Alternatively, you can run them individually: `npm run dev --prefix server` and `npm run dev --prefix client`)*
 
 ### 6. Run Automated API Tests
 Executes end-to-end tests across all authentication, task locking, consensus, review, and export endpoints:
