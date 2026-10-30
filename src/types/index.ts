@@ -18,6 +18,7 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   avatar?: string;
+  password?: string;
   stats: UserStats;
 }
 
@@ -208,7 +209,10 @@ export type WorkerActionType =
   | 'ai_accepted'
   | 'idle_detected'
   | 'canvas_zoom'
-  | 'guidelines_viewed';
+  | 'guidelines_viewed'
+  | 'login'
+  | 'logout'
+  | 'signup';
 
 export interface WorkerActivityLog {
   id: string;

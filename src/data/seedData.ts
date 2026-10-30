@@ -8,6 +8,7 @@ export const SEED_USERS: User[] = [
     name: 'Alex Chen',
     email: 'alex@labelai.io',
     role: 'admin',
+    password: 'password123',
     isActive: true,
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
     stats: {
@@ -23,6 +24,7 @@ export const SEED_USERS: User[] = [
     name: 'Asha Patel',
     email: 'asha@labelai.io',
     role: 'annotator',
+    password: 'password123',
     isActive: true,
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=120&auto=format&fit=crop&q=80',
     stats: {
@@ -38,6 +40,7 @@ export const SEED_USERS: User[] = [
     name: 'Marcus Vance',
     email: 'marcus@labelai.io',
     role: 'reviewer',
+    password: 'password123',
     isActive: true,
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
     stats: {
@@ -53,6 +56,7 @@ export const SEED_USERS: User[] = [
     name: 'Devon Reed',
     email: 'devon@labelai.io',
     role: 'annotator',
+    password: 'password123',
     isActive: true,
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80',
     stats: {

@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   CURRENT_USER_ID: 'labelloop_current_user_id_v1',
   WORKER_LOGS: 'labelloop_worker_logs_v1',
   WORKER_STATUSES: 'labelloop_worker_statuses_v1',
+  AUTH_SESSION: 'labelloop_auth_session_v1',
 };
 
 class StorageService {
@@ -19,7 +20,8 @@ class StorageService {
   private annotations: Annotation[] = [];
   private workerLogs: WorkerActivityLog[] = [];
   private workerStatuses: WorkerLiveStatus[] = [];
-  private currentUserId: string = 'u-alex'; // default admin
+  private currentUserId: string = '';
+  private isAuthenticated: boolean = false;
   private listeners: Set<() => void> = new Set();
 
   constructor() {
@@ -35,6 +37,7 @@ class StorageService {
       const storedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER_ID);
       const storedLogs = localStorage.getItem(STORAGE_KEYS.WORKER_LOGS);
       const storedStatuses = localStorage.getItem(STORAGE_KEYS.WORKER_STATUSES);
+      const storedAuthSession = localStorage.getItem(STORAGE_KEYS.AUTH_SESSION);
 
       if (storedUsers && storedProjects && storedTasks && storedAnnotations) {
         this.users = JSON.parse(storedUsers);
@@ -47,8 +50,19 @@ class StorageService {
         this.resetToDefaults();
       }
 
-      if (storedUser && this.users.some(u => u.id === storedUser)) {
-        this.currentUserId = storedUser;
+      // Check active authentication session
+      if (storedAuthSession) {
+        try {
+          const session = JSON.parse(storedAuthSession);
+          if (session && session.userId && this.users.some(u => u.id === session.userId)) {
+            this.currentUserId = session.userId;
+            this.isAuthenticated = true;
+          }
+        } catch {
+          this.isAuthenticated = false;
+        }
+      } else {
+        this.isAuthenticated = false;
       }
     } catch (e) {
       console.error('Failed to load storage, initializing defaults', e);
@@ -76,6 +90,15 @@ class StorageService {
       localStorage.setItem(STORAGE_KEYS.WORKER_LOGS, JSON.stringify(this.workerLogs));
       localStorage.setItem(STORAGE_KEYS.WORKER_STATUSES, JSON.stringify(this.workerStatuses));
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER_ID, this.currentUserId);
+      if (this.isAuthenticated && this.currentUserId) {
+        localStorage.setItem(STORAGE_KEYS.AUTH_SESSION, JSON.stringify({
+          userId: this.currentUserId,
+          token: `token_${this.currentUserId}_${Date.now()}`,
+          loggedInAt: new Date().toISOString()
+        }));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+      }
     } catch (e) {
       console.error('Error saving to localStorage', e);
     }
@@ -102,6 +125,10 @@ class StorageService {
     return this.users.find(u => u.id === id);
   }
 
+  public hasActiveSession(): boolean {
+    return this.isAuthenticated && Boolean(this.currentUserId && this.getUser(this.currentUserId));
+  }
+
   public getCurrentUser(): User {
     const user = this.getUser(this.currentUserId);
     return user || this.users[0];
@@ -110,6 +137,7 @@ class StorageService {
   public setCurrentUser(userId: string) {
     if (this.users.some(u => u.id === userId)) {
       this.currentUserId = userId;
+      this.isAuthenticated = true;
       this.persist();
     }
   }
@@ -130,16 +158,98 @@ class StorageService {
     }
   }
 
-  public registerUser(name: string, email: string): User {
-    const existing = this.users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (existing) return existing;
+  public loginUser(email: string, password?: string): { success: boolean; user?: User; error?: string } {
+    const trimmed = email.trim().toLowerCase();
+    const user = this.users.find(u => u.email.toLowerCase() === trimmed);
+
+    if (!user) {
+      return {
+        success: false,
+        error: 'No account found with this email. Check your address or select one of the Quick Demo accounts.'
+      };
+    }
+
+    if (!user.isActive) {
+      return {
+        success: false,
+        error: 'This account has been deactivated by an administrator. Please contact your team lead.'
+      };
+    }
+
+    if (user.password && password) {
+      if (user.password !== password) {
+        return {
+          success: false,
+          error: 'Incorrect password. (Demo password for all accounts is: password123)'
+        };
+      }
+    }
+
+    this.currentUserId = user.id;
+    this.isAuthenticated = true;
+
+    this.recordWorkerAction({
+      userId: user.id,
+      userName: user.name,
+      userRole: user.role,
+      userAvatar: user.avatar,
+      projectId: this.projects[0]?.id || 'global',
+      projectName: 'Platform',
+      taskId: 'AUTH_SESSION',
+      action: 'login',
+      details: `User ${user.name} logged in with ${user.role} privileges.`
+    });
+
+    this.persist();
+    return { success: true, user };
+  }
+
+  public logoutUser(): void {
+    if (this.currentUserId) {
+      const user = this.getUser(this.currentUserId);
+      if (user) {
+        this.recordWorkerAction({
+          userId: user.id,
+          userName: user.name,
+          userRole: user.role,
+          userAvatar: user.avatar,
+          projectId: this.projects[0]?.id || 'global',
+          projectName: 'Platform',
+          taskId: 'AUTH_SESSION',
+          action: 'logout',
+          details: `User ${user.name} logged out from session.`
+        });
+      }
+    }
+    this.currentUserId = '';
+    this.isAuthenticated = false;
+    localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+    this.persist();
+  }
+
+  public registerUser(
+    name: string,
+    email: string,
+    role: User['role'] = 'annotator',
+    password?: string
+  ): { success: boolean; user?: User; error?: string } {
+    const trimmedEmail = email.trim().toLowerCase();
+    const existing = this.users.find(u => u.email.toLowerCase() === trimmedEmail);
+    if (existing) {
+      return {
+        success: false,
+        error: 'An account with this email address already exists. Please sign in instead.'
+      };
+    }
 
     const newUser: User = {
       id: `u-${Date.now()}`,
-      name,
-      email,
-      role: 'annotator', // new users start as annotator per Phase 5
+      name: name.trim(),
+      email: trimmedEmail,
+      role,
+      password: password || 'password123',
       isActive: true,
+      avatar: `https://images.unsplash.com/photo-${role === 'admin' ? '1534528741775-53994a69daeb' : role === 'reviewer' ? '1507003211169-0a1dd7228f2d' : '1580489944761-15a19d654956'}?w=120&auto=format&fit=crop&q=80`,
       stats: {
         totalLabeled: 0,
         goldCorrect: 0,
@@ -150,8 +260,33 @@ class StorageService {
     };
     this.users.push(newUser);
     this.currentUserId = newUser.id;
+    this.isAuthenticated = true;
+
+    // Auto-assign to default projects
+    this.projects.forEach(p => {
+      if (!p.members.some(m => m.userId === newUser.id)) {
+        p.members.push({
+          userId: newUser.id,
+          role: role === 'admin' ? 'annotator' : role,
+          assignedAt: new Date().toISOString()
+        });
+      }
+    });
+
+    this.recordWorkerAction({
+      userId: newUser.id,
+      userName: newUser.name,
+      userRole: newUser.role,
+      userAvatar: newUser.avatar,
+      projectId: this.projects[0]?.id || 'global',
+      projectName: 'Platform',
+      taskId: 'AUTH_SESSION',
+      action: 'signup',
+      details: `Created new ${role} account for ${newUser.name} (${newUser.email})`
+    });
+
     this.persist();
-    return newUser;
+    return { success: true, user: newUser };
   }
 
   // --- Project Management ---

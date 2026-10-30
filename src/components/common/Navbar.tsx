@@ -17,7 +17,8 @@ import {
   Compass,
   AlertTriangle,
   BookOpen,
-  Activity
+  Activity,
+  LogOut
 } from 'lucide-react';
 
 
@@ -36,7 +37,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenBlueprint,
   onOpenLiveFeed
 }) => {
-  const { currentUser, users, switchUser, activeProject, activeProjectId, setActiveProjectId, isAdmin, isAnnotator, isReviewer } = useAuth();
+  const { currentUser, users, switchUser, logout, activeProject, activeProjectId, setActiveProjectId, isAdmin, isAnnotator, isReviewer } = useAuth();
   const [showPersonaMenu, setShowPersonaMenu] = useState(false);
   const [showProjectMenu, setShowProjectMenu] = useState(false);
 
@@ -433,9 +434,32 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </button>
                     ))}
                   </div>
+
+                  {/* Sign Out Option */}
+                  <div className="pt-2 mt-2 border-t border-slate-100">
+                    <button
+                      onClick={() => {
+                        setShowPersonaMenu(false);
+                        logout();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-500" />
+                      <span>Sign Out from Dashboard</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
+
+            {/* Quick Sign Out icon button */}
+            <button
+              onClick={logout}
+              title="Sign Out / Lock Session"
+              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors hidden sm:block"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
 
           </div>
         </div>

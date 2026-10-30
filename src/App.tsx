@@ -24,12 +24,14 @@ import { UserManagement } from './components/admin/UserManagement';
 import { ExportView } from './components/admin/ExportView';
 import { CreateProjectModal } from './components/admin/CreateProjectModal';
 import { WorkforceTrackerView } from './components/tracker/WorkforceTrackerView';
+import { AuthPage } from './components/auth/AuthPage';
 
 function MainApp() {
-  const { currentUser, activeProject, setActiveProjectId, isAdmin, isAnnotator, isReviewer } = useAuth();
+  const { isAuthenticated, currentUser, activeProject, setActiveProjectId, isAdmin, isAnnotator, isReviewer } = useAuth();
   
   // Tab state initialized according to current role
   const [currentTab, setCurrentTab] = useState<string>(() => {
+    if (!currentUser) return 'overview';
     if (currentUser.role === 'admin') return 'overview';
     if (currentUser.role === 'reviewer') return 'review-queue';
     return 'labeling';
@@ -42,6 +44,7 @@ function MainApp() {
 
   // If user role changes and current tab is incompatible, automatically redirect
   React.useEffect(() => {
+    if (!currentUser) return;
     if (currentTab === 'tracker') return; // Available to all roles
     if (isAdmin && ['my-projects', 'labeling', 'history'].includes(currentTab)) {
       setCurrentTab('overview');
@@ -50,7 +53,20 @@ function MainApp() {
     } else if (isReviewer && ['my-projects', 'labeling', 'history', 'projects', 'ai-studio', 'users'].includes(currentTab)) {
       setCurrentTab('review-queue');
     }
-  }, [currentUser.role, currentTab]);
+  }, [currentUser?.role, currentTab, isAdmin, isAnnotator, isReviewer]);
+
+  // Require authentication before entering dashboard
+  if (!isAuthenticated || !currentUser) {
+    return (
+      <>
+        <AuthPage onOpenBlueprint={() => setShowBlueprint(true)} />
+        <EngineeringBlueprint
+          isOpen={showBlueprint}
+          onClose={() => setShowBlueprint(false)}
+        />
+      </>
+    );
+  }
 
 
   return (
