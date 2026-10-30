@@ -1,0 +1,9 @@
+{
+  "name": "LabelLoop AI",
+  "description": "Production data annotation and perception platform with CVAT-style computer vision bounding boxes, real-time workforce activity tracker, multi-role RBAC, Fleiss' kappa agreement metrics, and Gemini pre-labeling.",
+  "requestFramePermissions": [],
+
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
