@@ -22,6 +22,150 @@ LabelLoop AI is a full-stack, enterprise-grade data labeling and annotation plat
 
 ---
 
+## 🏛️ System Architecture
+
+```mermaid
+flowchart TB
+    subgraph Client["React + Vite Frontend (client/)"]
+        UI["App.jsx & Navbar"]
+        BG["AnimatedBackground.jsx (3D Canvas + Parallax)"]
+        PL["ProjectList & Modals"]
+        AW["AnnotatorWorkspace.jsx"]
+        RQ["ReviewQueue.jsx"]
+        TTW["TimeTrackerWidget.jsx (Daily Reset UTC)"]
+        ATH["AdminTimeHistory.jsx (Admin Audit)"]
+        API["services/api.js (REST + JWT Client)"]
+
+        UI --> BG
+        UI --> PL
+        UI --> AW
+        UI --> RQ
+        UI --> ATH
+        AW --> TTW
+        RQ --> TTW
+        PL --> API
+        AW --> API
+        RQ --> API
+        TTW --> API
+        ATH --> API
+    end
+
+    subgraph Server["Express.js REST API (server/)"]
+        MW["Auth & RBAC Middlewares (JWT + Roles)"]
+        RT["Routes (auth, project, task, annotation, export, timelog)"]
+        CTRL["Controllers"]
+        SVC["Services (task, consensus, ai, export, timelog)"]
+
+        API -->|"HTTP / JSON + Bearer JWT"| MW
+        MW --> RT
+        RT --> CTRL
+        CTRL --> SVC
+    end
+
+    subgraph DB["MongoDB (labelloop_ai)"]
+        U[("User")]
+        P[("Project")]
+        T[("Task (15-min Atomic Lock)")]
+        A[("Annotation")]
+        R[("Review")]
+        TL[("TimeLog (Per-User Per-Day UTC)")]
+    end
+
+    SVC --> U
+    SVC --> P
+    SVC --> T
+    SVC --> A
+    SVC --> R
+    SVC --> TL
+```
+
+---
+
+## 📂 Folder Structure
+
+```text
+Label.AI/
+├── package.json                          # Root scripts (concurrently dev, seed, test:api)
+├── README.md
+├── client/                               # React 19 + Vite frontend
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── .oxlintrc.json
+│   ├── .env.example
+│   └── src/
+│       ├── main.jsx
+│       ├── App.jsx                       # Root state, views & hero scroll parallax
+│       ├── App.css
+│       ├── index.css                     # Dark theme tokens & smooth scroll rules
+│       ├── services/
+│       │   └── api.js                    # Fetch wrapper & API endpoints
+│       └── components/
+│           ├── AnimatedBackground.jsx    # 3D wireframe scanner, laser, HUD & neural web
+│           ├── Navbar.jsx                # Navigation, role badge & demo account switcher
+│           ├── AuthModal.jsx             # Login / Register / Demo quick-login
+│           ├── ProjectList.jsx           # Project cards, stats, AI pre-label & exports
+│           ├── CreateProjectModal.jsx    # New project & label schema builder
+│           ├── UploadCsvModal.jsx        # Drag-and-drop CSV task importer
+│           ├── AnnotatorWorkspace.jsx    # Labeling studio with hotkeys & timer
+│           ├── ReviewQueue.jsx           # Conflict resolution & approve/reject UI
+│           ├── TimeTrackerWidget.jsx     # Daily labeler/reviewer activity tracker
+│           └── AdminTimeHistory.jsx      # Admin employee time history & drill-down
+└── server/                               # Node.js + Express + MongoDB backend
+    ├── package.json
+    ├── .env.example
+    └── src/
+        ├── server.js                     # HTTP server & DB bootstrap
+        ├── app.js                        # Express middleware & route mounting
+        ├── config/
+        │   ├── constants.js              # Roles, statuses, review decisions, lock timeout
+        │   ├── db.js                     # Mongoose connection
+        │   └── env.js                    # Environment config
+        ├── middlewares/
+        │   ├── auth.middleware.js        # JWT verification
+        │   ├── role.middleware.js        # RBAC authorization
+        │   ├── validate.middleware.js    # Joi request validation
+        │   └── error.middleware.js       # Centralized error handler
+        ├── models/
+        │   ├── User.js
+        │   ├── Project.js
+        │   ├── Task.js
+        │   ├── Annotation.js
+        │   ├── Review.js
+        │   └── TimeLog.js                # Daily per-user activity & action log
+        ├── routes/
+        │   ├── auth.routes.js
+        │   ├── project.routes.js
+        │   ├── task.routes.js
+        │   ├── annotation.routes.js
+        │   ├── export.routes.js
+        │   └── timelog.routes.js
+        ├── controllers/
+        │   ├── auth.controller.js
+        │   ├── project.controller.js
+        │   ├── task.controller.js
+        │   ├── annotation.controller.js
+        │   ├── export.controller.js
+        │   └── timelog.controller.js
+        ├── services/
+        │   ├── auth.service.js
+        │   ├── project.service.js
+        │   ├── task.service.js
+        │   ├── consensus.service.js      # Majority-vote consensus & escalation
+        │   ├── ai.service.js             # AI pre-labeling suggestions
+        │   ├── export.service.js         # JSON & CSV dataset exporters
+        │   └── timelog.service.js        # Daily UTC rollovers & history queries
+        ├── utils/
+        │   ├── apiError.js
+        │   ├── asyncHandler.js
+        │   └── csvParser.js
+        └── scripts/
+            ├── seed.js                   # Demo users, project & tasks seeder
+            └── test-api.js               # End-to-end API test suite (8 suites)
+```
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Requirements
