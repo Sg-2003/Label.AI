@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tag, CheckCircle2, ShieldAlert, BarChart3, LogOut, Sparkles, User, ChevronDown } from 'lucide-react';
+import { Tag, ShieldAlert, BarChart3, LogOut, Sparkles, User, ChevronDown, Timer } from 'lucide-react';
 
 export default function Navbar({
   user,
@@ -50,6 +50,16 @@ export default function Navbar({
               >
                 <ShieldAlert size={15} />
                 Review Queue
+              </button>
+            )}
+
+            {user.role === 'admin' && (
+              <button
+                className={`btn btn-sm ${currentView === 'timetracker' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setCurrentView('timetracker')}
+              >
+                <Timer size={15} />
+                Time Tracker
               </button>
             )}
           </nav>

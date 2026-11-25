@@ -3,17 +3,14 @@ import { api } from '../services/api';
 import {
   ShieldAlert,
   CheckCircle2,
-  AlertTriangle,
   RotateCcw,
   Check,
-  X,
-  MessageSquare,
-  ArrowRight,
   Sparkles,
   RefreshCw
 } from 'lucide-react';
+import TimeTrackerWidget from './TimeTrackerWidget';
 
-export default function ReviewQueue({ project, user }) {
+export default function ReviewQueue({ project }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -21,6 +18,7 @@ export default function ReviewQueue({ project, user }) {
   const [comments, setComments] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [timelogTrigger, setTimelogTrigger] = useState(0);
 
   const loadQueue = async () => {
     if (!project) return;
@@ -42,8 +40,27 @@ export default function ReviewQueue({ project, user }) {
   };
 
   useEffect(() => {
-    loadQueue();
-  }, [project?._id]);
+    if (!project) return;
+    let active = true;
+    api.getReviewQueue(project._id)
+      .then((queue) => {
+        if (!active) return;
+        setTasks(queue);
+        if (queue.length > 0) {
+          setSelectedTask(queue[0]);
+          setFinalLabel(queue[0].annotations?.[0]?.label || '');
+        } else {
+          setSelectedTask(null);
+        }
+      })
+      .catch((err) => console.error('Failed to load review queue:', err))
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [project]);
 
   const handleDecision = async (decision) => {
     if (!selectedTask || submitting) return;
@@ -64,6 +81,7 @@ export default function ReviewQueue({ project, user }) {
       setMessage(`Task successfully ${decision}!`);
       setTimeout(() => setMessage(''), 3000);
       setComments('');
+      setTimelogTrigger((prev) => prev + 1);
 
       // Reload queue
       loadQueue();
@@ -86,6 +104,7 @@ export default function ReviewQueue({ project, user }) {
 
   return (
     <div style={{ maxWidth: '1100px', margin: '24px auto', padding: '0 20px' }}>
+      <TimeTrackerWidget refreshTrigger={timelogTrigger} />
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',

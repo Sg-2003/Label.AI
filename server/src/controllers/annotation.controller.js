@@ -4,6 +4,7 @@ const Task = require('../models/Task');
 const User = require('../models/User');
 const ApiError = require('../utils/apiError');
 const consensusService = require('../services/consensus.service');
+const timelogService = require('../services/timelog.service');
 
 const submitAnnotation = asyncHandler(async (req, res) => {
   const { taskId } = req.params;
@@ -62,6 +63,17 @@ const submitAnnotation = asyncHandler(async (req, res) => {
 
   // Evaluate consensus
   const consensusResult = await consensusService.evaluateConsensus(task._id);
+
+  // Record action in daily time log (fire-and-forget)
+  timelogService.recordAction({
+    userId,
+    type: 'annotation',
+    taskId: task._id,
+    projectId: task.projectId,
+    projectName: task.projectId?.toString() || '',
+    label,
+    timeSpentSeconds
+  }).catch(err => console.error('[TimeLog] annotation record failed:', err.message));
 
   res.status(201).json({
     success: true,

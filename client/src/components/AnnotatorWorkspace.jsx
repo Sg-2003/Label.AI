@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../services/api';
 import confetti from 'canvas-confetti';
 import {
-  Tag,
   Clock,
   SkipForward,
   CheckCircle,
@@ -10,13 +9,12 @@ import {
   Award,
   AlertTriangle,
   Sparkles,
-  ChevronRight,
   Flame,
-  ArrowRight,
   RefreshCw
 } from 'lucide-react';
+import TimeTrackerWidget from './TimeTrackerWidget';
 
-export default function AnnotatorWorkspace({ project, user, onUpdateStats }) {
+export default function AnnotatorWorkspace({ project, onUpdateStats }) {
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -26,11 +24,12 @@ export default function AnnotatorWorkspace({ project, user, onUpdateStats }) {
   const [goldNotification, setGoldNotification] = useState(null);
   const [showGuidelines, setShowGuidelines] = useState(false);
   const [emptyQueue, setEmptyQueue] = useState(false);
+  const [timelogTrigger, setTimelogTrigger] = useState(0);
 
   const timerRef = useRef(null);
 
   // Load next task for this project
-  const loadNextTask = async () => {
+  const loadNextTask = useCallback(async () => {
     setLoading(true);
     setTimeSpent(0);
     setGoldNotification(null);
@@ -48,10 +47,30 @@ export default function AnnotatorWorkspace({ project, user, onUpdateStats }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [project._id]);
 
   useEffect(() => {
-    loadNextTask();
+    let active = true;
+    api.getNextTask(project._id)
+      .then((nextTask) => {
+        if (!active) return;
+        setTimeSpent(0);
+        setGoldNotification(null);
+        if (!nextTask) {
+          setTask(null);
+          setEmptyQueue(true);
+        } else {
+          setTask(nextTask);
+          setEmptyQueue(false);
+        }
+      })
+      .catch((err) => console.error('Failed to load next task:', err))
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [project._id]);
 
   // Stopwatch timer for current task
@@ -65,7 +84,7 @@ export default function AnnotatorWorkspace({ project, user, onUpdateStats }) {
   }, [task, emptyQueue]);
 
   // Submit annotation handler
-  const handleAnnotate = async (labelName) => {
+  const handleAnnotate = useCallback(async (labelName) => {
     if (!task || submitting) return;
 
     setSubmitting(true);
@@ -77,6 +96,7 @@ export default function AnnotatorWorkspace({ project, user, onUpdateStats }) {
       });
 
       setSessionCount((prev) => prev + 1);
+      setTimelogTrigger((prev) => prev + 1);
       if (onUpdateStats) onUpdateStats();
 
       // Check for gold standard feedback
@@ -109,21 +129,22 @@ export default function AnnotatorWorkspace({ project, user, onUpdateStats }) {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [task, submitting, confidence, timeSpent, onUpdateStats, loadNextTask]);
 
   // Skip current task
-  const handleSkip = async () => {
+  const handleSkip = useCallback(async () => {
     if (!task || submitting) return;
     setSubmitting(true);
     try {
       await api.skipTask(task._id);
+      setTimelogTrigger((prev) => prev + 1);
       loadNextTask();
     } catch (err) {
       console.error('Failed to skip task:', err);
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [task, submitting, loadNextTask]);
 
   // Keyboard shortcut listener
   useEffect(() => {
@@ -157,7 +178,7 @@ export default function AnnotatorWorkspace({ project, user, onUpdateStats }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [task, project, confidence, timeSpent, submitting]);
+  }, [task, project, handleAnnotate, handleSkip]);
 
   const formatTimer = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -203,6 +224,9 @@ export default function AnnotatorWorkspace({ project, user, onUpdateStats }) {
 
   return (
     <div style={{ maxWidth: '960px', margin: '24px auto', padding: '0 20px' }}>
+      {/* Daily Time Tracker Widget */}
+      <TimeTrackerWidget refreshTrigger={timelogTrigger} />
+
       {/* Top Workspace Header Bar */}
       <div style={{
         display: 'flex',

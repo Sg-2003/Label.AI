@@ -215,7 +215,26 @@ export const api = {
     return res.data;
   },
 
-  // Export
+  // Time Tracking
+  getMyTodayLog: async () => {
+    const res = await request('/timelog/today');
+    return res.data.log;
+  },
+
+  getTimelogHistory: async (start, end, userId) => {
+    const params = new URLSearchParams();
+    if (start) params.set('start', start);
+    if (end) params.set('end', end);
+    if (userId) params.set('userId', userId);
+    const res = await request(`/timelog/history?${params}`);
+    return res.data;
+  },
+
+  getUserDayLog: async (userId, date) => {
+    const res = await request(`/timelog/user/${userId}/${date}`);
+    return res.data.log;
+  },
+
   exportDataset: async (projectId, format = 'json', completedOnly = true) => {
     const token = getStoredToken();
     const url = `${API_BASE}/projects/${projectId}/export?format=${format}&completedOnly=${completedOnly}`;

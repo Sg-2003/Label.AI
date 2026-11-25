@@ -7,16 +7,10 @@ import {
   BarChart2,
   Play,
   CheckCircle,
-  Clock,
-  Layers,
-  ArrowRight,
-  TrendingUp,
   RefreshCw,
   Sparkles,
   Pause,
-  Award,
-  Users,
-  ShieldCheck
+  Award
 } from 'lucide-react';
 
 export default function ProjectList({
@@ -28,7 +22,6 @@ export default function ProjectList({
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStats, setSelectedStats] = useState(null);
-  const [statsLoading, setStatsLoading] = useState(false);
   const [exportingId, setExportingId] = useState(null);
   const [actionMessage, setActionMessage] = useState('');
 
@@ -45,7 +38,18 @@ export default function ProjectList({
   };
 
   useEffect(() => {
-    loadProjects();
+    let active = true;
+    api.getProjects()
+      .then((data) => {
+        if (active) setProjects(data);
+      })
+      .catch((err) => console.error('Failed to load projects:', err))
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const showNotification = (msg) => {
@@ -87,14 +91,11 @@ export default function ProjectList({
   };
 
   const handleViewStats = async (projectId) => {
-    setStatsLoading(true);
     try {
       const stats = await api.getProjectStats(projectId);
       setSelectedStats(stats);
     } catch (err) {
       alert(err.message || 'Failed to fetch project stats');
-    } finally {
-      setStatsLoading(false);
     }
   };
 

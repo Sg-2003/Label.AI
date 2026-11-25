@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api, getStoredUser } from './services/api';
 import Navbar from './components/Navbar';
 import AuthModal from './components/AuthModal';
@@ -7,6 +7,8 @@ import AnnotatorWorkspace from './components/AnnotatorWorkspace';
 import ReviewQueue from './components/ReviewQueue';
 import CreateProjectModal from './components/CreateProjectModal';
 import UploadCsvModal from './components/UploadCsvModal';
+import AnimatedBackground from './components/AnimatedBackground';
+import AdminTimeHistory from './components/AdminTimeHistory';
 import { Tag, Sparkles, ShieldCheck, ArrowRight, Play, CheckCircle2, Zap } from 'lucide-react';
 
 export default function App() {
@@ -20,13 +22,28 @@ export default function App() {
   const [isUploadCsvOpen, setIsUploadCsvOpen] = useState(false);
   const [uploadProjectId, setUploadProjectId] = useState(null);
 
+  // Smooth scroll parallax state
+  const [scrollY, setScrollY] = useState(0);
+  const heroRef = useRef(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Use requestAnimationFrame for buttery-smooth updates
+      requestAnimationFrame(() => {
+        setScrollY(window.scrollY);
+      });
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Check login session on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const currentUser = await api.getMe();
         setUser(currentUser);
-      } catch (err) {
+      } catch {
         setUser(null);
       }
     };
@@ -48,7 +65,7 @@ export default function App() {
       if (res.user.role === 'reviewer') {
         setCurrentView('review');
       }
-    } catch (err) {
+    } catch {
       alert(`Could not switch to ${email}. Make sure database is seeded.`);
     }
   };
@@ -68,7 +85,8 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      {!user && <AnimatedBackground />}
       <Navbar
         user={user}
         currentView={currentView}
@@ -81,7 +99,7 @@ export default function App() {
       <main style={{ flex: 1, paddingBottom: '60px' }}>
         {/* If Not Logged In -> Show Hero & Quick Test Drive */}
         {!user ? (
-          <div style={{ maxWidth: '900px', margin: '80px auto', padding: '0 20px', textAlign: 'center' }}>
+          <div ref={heroRef} style={{ maxWidth: '900px', margin: '80px auto', padding: '0 20px', textAlign: 'center' }}>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -93,7 +111,10 @@ export default function App() {
               color: 'var(--accent-cyan)',
               fontSize: '0.85rem',
               fontWeight: 600,
-              marginBottom: '24px'
+              marginBottom: '24px',
+              transform: `translateY(${scrollY * -0.15}px)`,
+              opacity: Math.max(0, 1 - scrollY * 0.003),
+              transition: 'transform 0.1s ease-out, opacity 0.1s ease-out',
             }}>
               <Sparkles size={16} /> Intelligent Annotation & Consensus Platform
             </div>
@@ -103,7 +124,10 @@ export default function App() {
               fontWeight: 800,
               lineHeight: 1.15,
               marginBottom: '20px',
-              letterSpacing: '-0.03em'
+              letterSpacing: '-0.03em',
+              transform: `translateY(${scrollY * -0.1}px)`,
+              opacity: Math.max(0, 1 - scrollY * 0.002),
+              transition: 'transform 0.1s ease-out, opacity 0.1s ease-out',
             }}>
               Collaborative Data Labeling with{' '}
               <span style={{
@@ -115,11 +139,27 @@ export default function App() {
               </span>
             </h1>
 
-            <p style={{ fontSize: '1.15rem', color: 'var(--text-muted)', maxWidth: '640px', margin: '0 auto 36px', lineHeight: 1.6 }}>
+            <p style={{
+              fontSize: '1.15rem',
+              color: 'var(--text-muted)',
+              maxWidth: '640px',
+              margin: '0 auto 36px',
+              lineHeight: 1.6,
+              transform: `translateY(${scrollY * -0.06}px)`,
+              opacity: Math.max(0, 1 - scrollY * 0.0015),
+              transition: 'transform 0.1s ease-out, opacity 0.1s ease-out',
+            }}>
               Empower your ML teams with atomic task locks, majority-vote consensus thresholds, real-time gold standard quality control, and human dispute resolution.
             </p>
 
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '14px',
+              flexWrap: 'wrap',
+              transform: `translateY(${scrollY * -0.04}px)`,
+              transition: 'transform 0.1s ease-out',
+            }}>
               <button
                 className="btn btn-primary"
                 style={{ padding: '14px 28px', fontSize: '1rem' }}
@@ -146,7 +186,16 @@ export default function App() {
             </div>
 
             {/* Feature Cards Showcase */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginTop: '64px', textAlign: 'left' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '20px',
+              marginTop: '64px',
+              textAlign: 'left',
+              transform: `translateY(${Math.max(0, 30 - scrollY * 0.08)}px)`,
+              opacity: Math.min(1, 0.3 + scrollY * 0.005),
+              transition: 'transform 0.15s ease-out, opacity 0.15s ease-out',
+            }}>
               <div className="glass-panel" style={{ padding: '24px' }}>
                 <div style={{ color: 'var(--accent-cyan)', marginBottom: '12px' }}>
                   <ShieldCheck size={28} />
@@ -242,6 +291,11 @@ export default function App() {
                   />
                 </div>
               )
+            )}
+
+            {/* View 4: Time Tracker History (Admin only) */}
+            {currentView === 'timetracker' && user.role === 'admin' && (
+              <AdminTimeHistory />
             )}
           </>
         )}

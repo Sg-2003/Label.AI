@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
-import { UploadCloud, FileText, CheckCircle2, AlertCircle, X, Download } from 'lucide-react';
+import { UploadCloud, AlertCircle, X, Download } from 'lucide-react';
 
 export default function UploadCsvModal({ isOpen, onClose, projectId, onUploadSuccess }) {
   const [file, setFile] = useState(null);

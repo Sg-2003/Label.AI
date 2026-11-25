@@ -2,6 +2,8 @@ const asyncHandler = require('../utils/asyncHandler');
 const taskService = require('../services/task.service');
 const { parseCSV } = require('../utils/csvParser');
 const ApiError = require('../utils/apiError');
+const timelogService = require('../services/timelog.service');
+const Annotation = require('../models/Annotation');
 
 const createTasks = asyncHandler(async (req, res) => {
   const { tasks } = req.body;
@@ -54,6 +56,16 @@ const getNextTask = asyncHandler(async (req, res) => {
 
 const skipTask = asyncHandler(async (req, res) => {
   const task = await taskService.skipTask(req.params.taskId, req.user._id);
+
+  // Record skip in daily time log
+  timelogService.recordAction({
+    userId: req.user._id,
+    type: 'skip',
+    taskId: task._id,
+    projectId: task.projectId,
+    timeSpentSeconds: 0
+  }).catch(err => console.error('[TimeLog] skip record failed:', err.message));
+
   res.status(200).json({
     success: true,
     message: 'Task skipped successfully',
@@ -92,6 +104,35 @@ const reviewTask = asyncHandler(async (req, res) => {
     finalLabel,
     comments
   });
+
+  // Record review in daily time log for reviewer
+  const reviewType = decision === 'rejected' ? 'review_reject' : 'review_approve';
+  timelogService.recordAction({
+    userId: req.user._id,
+    type: reviewType,
+    taskId: req.params.taskId,
+    projectId: result.task?.projectId,
+    label: finalLabel || decision
+  }).catch(err => console.error('[TimeLog] review record failed:', err.message));
+
+  // Also record approved/rejected outcome on each annotator's daily time log
+  Annotation.find({ taskId: req.params.taskId })
+    .then((annotations) => {
+      for (const ann of annotations) {
+        const isApproved =
+          decision !== 'rejected' &&
+          finalLabel &&
+          ann.label.trim().toLowerCase() === finalLabel.trim().toLowerCase();
+        timelogService.recordAction({
+          userId: ann.userId,
+          type: isApproved ? 'review_approve' : 'review_reject',
+          taskId: req.params.taskId,
+          projectId: ann.projectId,
+          label: ann.label
+        }).catch(err => console.error('[TimeLog] annotator outcome record failed:', err.message));
+      }
+    })
+    .catch(err => console.error('[TimeLog] annotation lookup failed:', err.message));
 
   res.status(200).json({
     success: true,

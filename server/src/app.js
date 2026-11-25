@@ -10,6 +10,7 @@ const projectRoutes = require('./routes/project.routes');
 const taskRoutes = require('./routes/task.routes');
 const annotationRoutes = require('./routes/annotation.routes');
 const exportRoutes = require('./routes/export.routes');
+const timelogRoutes = require('./routes/timelog.routes');
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use('/api/v1/projects', projectRoutes);
 app.use('/api/v1', taskRoutes);
 app.use('/api/v1', annotationRoutes);
 app.use('/api/v1', exportRoutes);
+app.use('/api/v1', timelogRoutes);
 
 // Catch 404
 app.use((req, res, next) => {

@@ -170,6 +170,31 @@ const runTests = async () => {
     const exportCsvText = await exportCsvRes.text();
     assert(exportCsvText.startsWith('"id","text","label"'), 'Exported dataset in CSV format successfully');
 
+    // 8. Time Tracker & Admin History
+    logStep('Test 8: Time Tracker & Admin History');
+    const aliceTodayRes = await fetch(`${BASE_URL}/timelog/today`, {
+      headers: { Authorization: `Bearer ${aliceToken}` }
+    });
+    const aliceTodayData = await aliceTodayRes.json();
+    assert(
+      aliceTodayRes.status === 200 && aliceTodayData.data.log.totalAnnotations >= 1 && aliceTodayData.data.log.totalSkipped >= 1,
+      'Alice daily time log tracked annotations and skips'
+    );
+
+    const historyRes = await fetch(`${BASE_URL}/timelog/history`, {
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    const historyData = await historyRes.json();
+    assert(
+      historyRes.status === 200 && Array.isArray(historyData.data.logs) && historyData.data.logs.length > 0,
+      'Admin time tracker history fetched successfully'
+    );
+
+    const forbiddenHistoryRes = await fetch(`${BASE_URL}/timelog/history`, {
+      headers: { Authorization: `Bearer ${aliceToken}` }
+    });
+    assert(forbiddenHistoryRes.status === 403, 'Non-admin blocked from admin time tracker history');
+
     console.log('\n======================================================');
     console.log('🎉 ALL BACKEND ENDPOINTS AND WORKFLOWS PASSED!');
     console.log('======================================================\n');

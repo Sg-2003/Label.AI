@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
-import { Plus, Trash2, X, Sparkles, Check, Info } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 
 const PRESET_COLORS = [
   '#10B981', // emerald

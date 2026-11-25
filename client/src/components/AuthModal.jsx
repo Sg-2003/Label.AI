@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
-import { ShieldCheck, Mail, Lock, User, Sparkles, X, ArrowRight } from 'lucide-react';
+import { Sparkles, X, ArrowRight } from 'lucide-react';
 
 export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   const [isLogin, setIsLogin] = useState(true);
