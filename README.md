@@ -10,9 +10,15 @@ LabelLoop AI is a full-stack, enterprise-grade data labeling and annotation plat
 - **Task Assignment & Concurrency Lock**: 15-minute lease mechanism preventing duplicate work across annotators while automatically recovering abandoned tasks.
 - **Consensus Algorithm**: Real-time evaluation of overlap agreements with majority-voting thresholding. Tasks with disagreements are escalated automatically to the Review Queue.
 - **Gold Standard Quality Control**: Secret ground-truth benchmark tasks interleaved into the queue to track annotator accuracy in real-time.
+- **CVAT-Style Daily Time Tracker & Admin History**: Tracks each employee's daily annotations, approvals, rejections, skips, active work duration, and action timeline. Automatically resets on the labeler/reviewer screen at midnight UTC while preserving all historical daily records in MongoDB for Admin inspection.
 - **Role-Based Access Control (RBAC)**: Secure access tailored for `admin`, `annotator`, and `reviewer` roles.
 - **CSV & Batch Importer**: Streamed task creation with metadata mapping.
 - **Dataset Exporters**: One-click exports in standard **JSON** and **CSV** formats.
+
+### Frontend Highlights
+- **Interactive 3D Homepage Background**: Full-viewport HTML5 Canvas animation featuring a rotating 3D wireframe mesh, sweeping electric laser scanline, segmentation highlights, computer-vision HUD callouts, neural constellation network, and smooth mouse/scroll parallax.
+- **Labeler & Reviewer Time Tracker Widget**: Collapsible daily activity bar in the Labeling Studio and Review Queue showing live counts, active time, clock-in/last-action timestamps, and recent action feed.
+- **Admin Time Tracker Dashboard**: Filter employee records by date range or user ID, view aggregate totals, and drill down into any employee's full daily action log.
 
 ---
 
@@ -118,3 +124,10 @@ All API routes are prefixed with `/api/v1`.
 | :--- | :--- | :--- | :--- |
 | `GET` | `/projects/:projectId/export?format=json` | Export dataset in JSON format | Reviewer / Admin |
 | `GET` | `/projects/:projectId/export?format=csv` | Export dataset in CSV format | Reviewer / Admin |
+
+### ⏱️ Time Tracker & Admin History (`/api/v1`)
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/timelog/today` | Get current user's daily stats & action feed (resets daily UTC) | Authenticated |
+| `GET` | `/timelog/history` | Query employee daily records by `start`, `end`, and `userId` | Admin |
+| `GET` | `/timelog/user/:userId/:date` | Get detailed action timeline for an employee on a specific date | Admin |
